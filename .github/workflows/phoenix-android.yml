@@ -1,0 +1,65 @@
+name: Phoenix VPN Android APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FLUTTER_VERSION: '3.38.5'
+  CHANNEL: 'prod'
+  EXPECTED_CORE_VERSION: "5.5.5"
+  IS_GITHUB_ACTIONS: '1'
+
+jobs:
+  build:
+    name: Build Phoenix VPN APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Install Android dependencies
+        run: |
+          make android-apk-install-deps
+          echo "$HOME/.pub-cache/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Core version
+        run: grep -qx "core.version=${EXPECTED_CORE_VERSION}" dependencies.properties
+      - name: Prepare Android project
+        run: make android-apk-prepare
+
+      - name: Build APK
+        run: make android-apk-release
+
+      - name: Collect APK files
+        run: |
+          set -e
+          mkdir -p phoenix-output
+          find build/app/outputs -type f -name '*.apk' -exec cp {} phoenix-output/ \;
+          test -n "$(find phoenix-output -type f -name '*.apk' -print -quit)"
+          ls -lh phoenix-output
+
+      - name: Upload Phoenix VPN APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Phoenix-VPN-APK
+          path: phoenix-output/*.apk
+          if-no-files-found: error
