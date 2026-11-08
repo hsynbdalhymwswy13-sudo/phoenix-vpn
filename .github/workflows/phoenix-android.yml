@@ -8,7 +8,6 @@ permissions:
 
 env:
   FLUTTER_VERSION: '3.38.5'
-  CHANNEL: 'prod'
   EXPECTED_CORE_VERSION: "5.5.5"
   IS_GITHUB_ACTIONS: '1'
 
@@ -44,9 +43,13 @@ jobs:
       - name: Verify Core version
         run: grep -qx "core.version=${EXPECTED_CORE_VERSION}" dependencies.properties
       - name: Prepare Android project
+        env:
+          CHANNEL: prod
         run: make android-apk-prepare
 
       - name: Build APK
+        env:
+          CHANNEL: prod
         run: make android-apk-release
 
       - name: Collect APK files
